@@ -81,8 +81,9 @@ void serial_init()
 void serial_write(uint8_t data) {
   // Calculate next head
   uint16_t next_head = serial_tx_buffer_head + 1;
-  if (next_head == TX_BUFFER_SIZE) { next_head = 0; }
+  uint16_t tail = serial_tx_buffer_tail;
 
+  if (next_head == TX_BUFFER_SIZE) { next_head = 0; }
   // Wait until there is space in the buffer
   while (next_head == serial_tx_buffer_tail) { 
     if (sys.execute & EXEC_RESET) { return; } // Only check for abort to avoid an endless loop.
@@ -94,6 +95,10 @@ void serial_write(uint8_t data) {
   
 	USART_SendData(USART1, data);
 	while (!(USART1->SR & USART_FLAG_TXE));		 //等待发送完成
+
+  tail++;
+  if (tail == TX_BUFFER_SIZE) { tail = 0; }
+  serial_tx_buffer_tail = tail;
 	
   // Enable Data Register Empty Interrupt to make sure tx-streaming is running
   //UCSR0B |=  (1 << UDRIE0); 
